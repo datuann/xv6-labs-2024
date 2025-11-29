@@ -22,6 +22,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int getyear(void);
+int trace(int mask);
+// user/user.h
+struct sysinfo;      // Tiền khai báo (Pre-declaration) [cite: 169, 170]
+int sysinfo(struct sysinfo *); // Khai báo hàm [cite: 171]
 
 // ulib.c
 int stat(const char*, struct stat*);

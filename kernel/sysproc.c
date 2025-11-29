@@ -5,7 +5,8 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
-
+#include "syscall.h" // Đảm bảo đã include
+#include "sysinfo.h"
 uint64
 sys_exit(void)
 {
@@ -90,4 +91,49 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64 sys_getyear(void) {
+return 1975;
+}
+
+uint64
+sys_trace(void)
+{
+  int mask;
+  // Lấy đối số đầu tiên (mask)
+  if (argint(0, &mask) < 0)
+    return -1;
+
+  // Lưu mask vào proc hiện tại
+  myproc()->trace_mask = mask;
+  return 0;
+}
+
+
+uint64
+sys_sysinfo(void)
+{
+  uint64 addr;
+  struct sysinfo si;
+  struct proc *p = myproc();
+
+
+  if (argaddr(0, &addr) < 0)
+    return -1;
+
+
+  si.freemem = freemem_count(); 
+  si.nproc = num_used_procs();
+  
+  // === THÊM LOGIC LOAD AVERAGE (Yêu cầu Challenge) ===
+  // Sử dụng hàm đã có để tính số tiến trình hoạt động, đại diện cho tải hệ thống
+  si.loadavg = num_used_procs(); // Hoặc gọi hàm load_average_snapshot() nếu bạn đã tạo riêng.
+
+
+  if (copyout(p->pagetable, addr, (char *)&si, sizeof(si)) < 0) {
+    return -1;
+  }
+
+  return 0;
 }

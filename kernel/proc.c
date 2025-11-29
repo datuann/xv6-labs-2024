@@ -302,6 +302,11 @@ fork(void)
   // Cause fork to return 0 in the child.
   np->trapframe->a0 = 0;
 
+  // --- Bắt đầu thêm TRACE MASK ---
+  // Copy the trace mask from parent to child.
+  np->trace_mask = p->trace_mask; 
+  // --- Kết thúc thêm TRACE MASK ---
+
   // increment reference counts on open file descriptors.
   for(i = 0; i < NOFILE; i++)
     if(p->ofile[i])
@@ -692,4 +697,44 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+int
+num_used_procs()
+{
+  int count = 0;
+  struct proc *p;
+
+  // Cần lock để đảm bảo không có thay đổi trạng thái tiến trình
+  // trong khi chúng ta đang duyệt qua danh sách.
+  // Tuy nhiên, vì mục đích của sysinfo là thống kê, và để tránh deadlock
+  // nếu các locks khác đang được giữ, ta sẽ chỉ sử dụng proc lock cục bộ
+  // HOẶC, theo cách làm phổ biến trong Xv6, duyệt mà không giữ lock
+  // trên mảng toàn cục, nhưng giữ lock cho từng tiến trình khi kiểm tra.
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state != UNUSED) {
+      count++;
+    }
+    release(&p->lock);
+  }
+  return count;
+}
+// kernel/proc.c (Giả định bạn muốn đếm các tiến trình đang hoạt động)
+
+int
+load_average_snapshot() // Đổi tên/tạo hàm mới cho rõ ràng
+{
+  int count = 0;
+  struct proc *p;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    // Tính load: đếm tất cả ngoại trừ UNUSED (UNUSED = 0, USED = 1,...)
+    if (p->state != UNUSED) { 
+      count++;
+    }
+    release(&p->lock);
+  }
+  return count;
 }
