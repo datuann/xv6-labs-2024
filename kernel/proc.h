@@ -104,4 +104,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  int trace_mask;              
+  struct usyscall *usyscall; // Lưu trữ con trỏ tới vùng nhớ USYSCALL
 };
+
+int num_used_procs(); // Hàm đếm tiến trình KHÔNG phải UNUSED
+int load_average_snapshot();

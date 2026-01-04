@@ -1,0 +1,27 @@
+CÂU TRẢ LỜI LÝ THUYẾT - LAB PAGE TABLES
+
+Câu 1: Giải thích kết quả đầu ra của vmprint dựa trên sơ đồ không gian địa chỉ ảo của xv6.
+Trả lời: 
+Đầu ra của vmprint hiển thị cấu trúc cây 3 tầng (Level 2, 1, 0) của kiến trúc RISC-V Sv39.
+- Cấp 2 (..): Là bảng phân trang gốc. Mỗi entry ánh xạ một vùng nhớ 1GB. 
+- Cấp 1 (.. ..): Mỗi entry ánh xạ vùng nhớ 2MB.
+- Cấp 0 (.. .. ..): Cấp lá, ánh xạ trực tiếp đến trang vật lý 4KB.
+Các địa chỉ ảo thấp (0x0..0x10000000) thường ánh xạ các thiết bị ngoại vi (UART, PLIC). 
+Các địa chỉ tầm trung (0x80000000) ánh xạ mã nguồn và dữ liệu Kernel. 
+Các địa chỉ rất cao (0x3ffffff000) ánh xạ vùng Trampoline và các trang bảo vệ.
+
+Câu 2: Những Page Table Entries (PTEs) nào có bit PTE_U (User) được bật?
+Trả lời: 
+Trong bảng phân trang Kernel, không có entry nào bật bit PTE_U để đảm bảo người dùng không thể truy cập trái phép vào nhân.
+Trong bảng phân trang User, bit PTE_U được bật cho:
+- Trang mã nguồn (text) và dữ liệu (data) của chương trình người dùng.
+- Trang ngăn xếp (user stack).
+- Trang chia sẻ USYSCALL (dùng để tăng tốc getpid).
+
+Câu 3: Mục đích của bit PTE_A trong system call pgaccess là gì?
+Trả lời: 
+Bit PTE_A (Accessed) là một cờ trạng thái do phần cứng RISC-V tự động đặt thành 1 mỗi khi trang đó được truy cập (đọc hoặc ghi). Kernel sử dụng bit này để theo dõi "tần suất sử dụng" của các trang bộ nhớ, từ đó hỗ trợ các thuật toán thay thế trang (như LRU) khi bộ nhớ vật lý bị đầy.
+
+Câu 4: Tại sao cần xóa bit PTE_A sau khi đọc nó trong pgaccess?
+Trả lời: 
+Vì phần cứng chỉ có thể đặt bit này lên 1 chứ không tự xóa về 0. Nếu Kernel không xóa bit này sau khi kiểm tra, nó sẽ luôn giữ giá trị 1, dẫn đến việc Kernel không thể phân biệt được giữa một trang đã được truy cập từ lâu và một trang vừa mới được truy cập lại. Việc xóa bit giúp xác định chính xác các truy cập mới phát sinh giữa các lần gọi pgaccess.

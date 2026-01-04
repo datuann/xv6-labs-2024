@@ -56,6 +56,8 @@ kvmmake(void)
   // allocate and map a kernel stack for each process.
   proc_mapstacks(kpgtbl);
   
+  if(mappages(kpgtbl, 0, PGSIZE, UART0, PTE_R | PTE_W) != 0)
+    panic("kvmmake: map address 0 failed");
   return kpgtbl;
 }
 
@@ -64,6 +66,7 @@ void
 kvminit(void)
 {
   kernel_pagetable = kvmmake();
+  vmprint(kernel_pagetable);
 }
 
 // Switch h/w page table register to the kernel's page table,
@@ -102,11 +105,11 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
     pte_t *pte = &pagetable[PX(level, va)];
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
-#ifdef LAB_PGTBL
-      if(PTE_LEAF(*pte)) {
-        return pte;
-      }
-#endif
+// #ifdef LAB_PGTBL
+//       if(PTE_LEAF(*pte)) {
+//         return pte;
+//       }
+// #endif
     } else {
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
@@ -486,15 +489,40 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   }
 }
 
-
 #ifdef LAB_PGTBL
 void
-vmprint(pagetable_t pagetable) {
-  // your code here
+_vmprint(pagetable_t pagetable, int level, uint64 base_va)
+{
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if(pte & PTE_V){
+      // Tính VA: Sử dụng toán tử OR để đặt các bit VPN vào đúng vị trí
+      uint64 va = base_va | ((uint64)i << PXSHIFT(level));
+      uint64 pa = PTE2PA(pte);
+
+      // ĐỊNH DẠNG QUAN TRỌNG: 
+      // Script yêu cầu có 1 dấu cách ở đầu dòng: " .."
+      // VA phải in ra dạng 0x0000000000000000 (16 ký tự hex)
+      if(level == 2) 
+        printf(" ..%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
+      else if(level == 1) 
+        printf(" .. ..%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
+      else if(level == 0) 
+        printf(" .. .. ..%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
+
+      if((pte & (PTE_R|PTE_W|PTE_X)) == 0 && level > 0){
+        _vmprint((pagetable_t)pa, level - 1, va);
+      }
+    }
+  }
+}
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", (void*)pagetable);
+  _vmprint(pagetable, 2, 0); 
 }
 #endif
-
-
 
 #ifdef LAB_PGTBL
 pte_t*

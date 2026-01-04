@@ -123,3 +123,32 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+extern pte_t *walk(pagetable_t, uint64, int);
+uint64
+sys_pgaccess(void) {
+  uint64 va;
+  int len;
+  uint64 mask_addr;
+
+  // Lấy các tham số từ user
+  argaddr(0, &va);
+  argint(1, &len);
+  argaddr(2, &mask_addr);
+
+  if(len > 64) return -1;
+
+  uint64 bitmask = 0;
+  struct proc *p = myproc();
+
+  for(int i = 0; i < len; i++){
+    uint64 v = va + i * PGSIZE;
+    pte_t *pte = walk(p->pagetable, v, 0); // Tìm PTE
+
+    if(pte != 0 && (*pte & PTE_V) && (*pte & PTE_A)){
+      bitmask |= (1L << i);  // Đánh dấu trang đã truy cập
+      *pte &= ~PTE_A;        // Xóa bit A sau khi đọc
+    }
+  }
+  // Chép kết quả về user space
+  return copyout(p->pagetable, mask_addr, (char *)&bitmask, sizeof(bitmask));
+}
