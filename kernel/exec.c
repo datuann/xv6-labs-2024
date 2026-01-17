@@ -128,11 +128,11 @@ exec(char *path, char **argv)
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
   #ifdef LAB_PGTBL
-  // Sử dụng biến static để chỉ in duy nhất 1 lần trong suốt vòng đời của Kernel
-  static int printed = 0;
-  if(p->pid == 1 && printed == 0) {
+  // Sử dụng biến static để ghi nhớ trạng thái in
+  static int vmprint_done = 0; 
+  if(p->pid == 1 && vmprint_done == 0) {
     vmprint(p->pagetable);
-    printed = 1; // Đánh dấu đã in xong
+    vmprint_done = 1; // Khóa lại, không cho in ở các lần exec sau
   }
   #endif
   return argc; // this ends up in a0, the first argument to main(argc, argv)
