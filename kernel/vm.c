@@ -491,36 +491,34 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 #ifdef LAB_PGTBL
 void
-_vmprint(pagetable_t pagetable, int level, uint64 base_va)
+_vmprint(pagetable_t pagetable, int level)
 {
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
     if(pte & PTE_V){
-      // Tính VA: Sử dụng toán tử OR để đặt các bit VPN vào đúng vị trí
-      uint64 va = base_va | ((uint64)i << PXSHIFT(level));
       uint64 pa = PTE2PA(pte);
 
-      // ĐỊNH DẠNG QUAN TRỌNG: 
-      // Script yêu cầu có 1 dấu cách ở đầu dòng: " .."
-      // VA phải in ra dạng 0x0000000000000000 (16 ký tự hex)
-      if(level == 2) 
-        printf(" ..%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
-      else if(level == 1) 
-        printf(" .. ..%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
-      else if(level == 0) 
-        printf(" .. .. ..%p: pte %p pa %p\n", (void*)va, (void*)pte, (void*)pa);
+      // In đúng định dạng với số lượng dấu chấm tương ứng cấp độ
+      if(level == 2)
+        printf("..%d: pte %p pa %p\n", i, (void*)pte, (void*)pa);
+      else if(level == 1)
+        printf(".. ..%d: pte %p pa %p\n", i, (void*)pte, (void*)pa);
+      else if(level == 0)
+        printf(".. .. ..%d: pte %p pa %p\n", i, (void*)pte, (void*)pa);
 
+      // Đệ quy nếu là bảng phân trang trung gian (không có các cờ R, W, X)
       if((pte & (PTE_R|PTE_W|PTE_X)) == 0 && level > 0){
-        _vmprint((pagetable_t)pa, level - 1, va);
+        _vmprint((pagetable_t)pa, level - 1);
       }
     }
   }
 }
+
 void
 vmprint(pagetable_t pagetable)
 {
   printf("page table %p\n", (void*)pagetable);
-  _vmprint(pagetable, 2, 0); 
+  _vmprint(pagetable, 2);
 }
 #endif
 

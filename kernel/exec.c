@@ -127,6 +127,14 @@ exec(char *path, char **argv)
   p->trapframe->epc = elf.entry;  // initial program counter = main
   p->trapframe->sp = sp; // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
+  #ifdef LAB_PGTBL
+  // Sử dụng biến static để chỉ in duy nhất 1 lần trong suốt vòng đời của Kernel
+  static int printed = 0;
+  if(p->pid == 1 && printed == 0) {
+    vmprint(p->pagetable);
+    printed = 1; // Đánh dấu đã in xong
+  }
+  #endif
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
