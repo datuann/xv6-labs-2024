@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
         close(p[0]);
         
         // 3. Đẩy các số từ 2 đến 280 vào pipeline
-        for (int i = 2; i <= 280; i++) {
+        for (int i = 2; i <= 300; i++) {
             if (write(p[1], &i, sizeof(int)) != sizeof(int)) {
                 fprintf(2, "primes: source write failed at %d\n", i);
                 break;
